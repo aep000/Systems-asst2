@@ -3,11 +3,9 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
-
+#include<pthread.h>
 
 #define NUM_HEADERS 28
-#define _POSIX_SOURCE
-#undef _POSIX_SOURCE
 typedef struct node {
             char *raw_row;
             char *color;
@@ -39,7 +37,24 @@ typedef struct node {
             double aspect_ratio;
             int movie_facebook_likes;
             struct node *next;
-    }movie_data;
+}movie_data;
+
+char* FILE_HEADER = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
+
+typedef struct tnode{
+	movie_data* head;
+	struct tnode* next;
+	char * dPath;
+	char * sortColumn;
+	pthread_t tid;
+}tnode;
+
+typedef struct scanInput{
+	char* dPath;
+	char* oPath;
+	char* sortColumn;
+	tnode* result;
+}scanInput;
 
 char *sort_by;
 char search_dir_path[5000];
@@ -201,7 +216,11 @@ double getNumericalValue(movie_data head, char* header){
         return head.gross;
     }
 }
+char * getRow(movie_data * node){
+	char buff[1024];
+	sprintf(buff,"%s,%s,%d,%d,%d,%d,%s,%d,%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%d,%s,%s,%s,%d,%d,%d,%d,%d,%d",
 
+}
 //GOOD
 char* trimwhitespace (char *str) {
 

@@ -9,11 +9,6 @@
 #include "scannerCSVsorter.h"
 #include "mergesort.c"
 
-
-
-pthread_mutex_t lock;
-movie_data masterSorted;
-
 void errorOut(char* error){
 	fprintf(stderr, "%s\n",error);
 	exit(-1);
@@ -21,7 +16,7 @@ void errorOut(char* error){
 
 int endsWithSlash(const char *str)
 {
-    return (strcmp(strchr(str,'/'),"/")==0);
+    //return (strcmp(strchr(str,'/'),"/")==0);
     return (str && *str && str[strlen(str) - 1] == '/') ? 0 : 1;
 }
 
@@ -87,7 +82,7 @@ int checkValidParamConfig( int cFlag, char* cValue, int oFlag, char* oValue, int
     return 1;
 
 }
-int checkIfValidCSV(char* path, const char* sortColumn){
+int checkIfValidCSV(const char* path, const char* sortColumn){
 	if(strstr(path,"-sorted-")!=NULL)
 	return -1;
 	if(strcmp(strchr(path,'.'),".csv")!=0)
@@ -137,89 +132,126 @@ int checkIfValidCSV(char* path, const char* sortColumn){
 	return 1;
 }
 
-void *directoryFound(const char *dPath, const char *oPath, const char *sortColumn){
+
+movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
+	int len1 = strlen(h1->raw_row);
+	int len2 = strlen(h2->raw_row);
+	movie_data * out;
+	if(len2>len1){
+		out = h2;
+	}
+	else{
+		out = h1;
+	}
 
 }
 
-int scan(const char *dPath, const char *oPath, const char *sortColumn)
+movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
+	//if(len == 2){
+	//	return merge()
+	//}
+	if(len == 1){
+		return(head->head);
+	}
+	int c = 0;
+	int pivot = len/2;
+	tnode* cursor = head;
+	while(c<pivot){
+		cursor=cursor->next;
+		c++;
+	}
+	tnode* temp = cursor->next;
+	cursor->next = NULL;
+	//TODO thread
+	movie_data * h1 = metaMerge(temp,len-pivot,sortColumn);
+	movie_data * h2 = metaMerge(cursor,pivot,sortColumn);
+	return merge(h1,h2,sortColumn);
+}
+
+
+
+void * sortFile(void * threadNode){
+	tnode * result = (tnode*) threadNode;
+	const char * dPath=result->dPath;
+	const char * sortColumn = result->sortColumn;
+	if(checkIfValidCSV(dPath,sortColumn)!=1){
+		result->head = NULL;
+		return;
+	}
+	movie_data* head = parse_csv(dPath);
+	head->next = mergeSort(head->next,sortColumn);
+	result->head = head;
+
+}
+
+void * scan(void* input)
 {
+	tnode * in = (tnode*) input;
+	const char * dPath=in->dPath;
+	const char * sortColumn = in->sortColumn;
+	movie_data * result =  in->head;
+	tnode * localRoot = malloc(sizeof(tnode));
+	localRoot->head=NULL;
+	localRoot->next = NULL;
 	DIR *dir;
 	struct dirent *cursor;
 	int children = 0;
 	if (!(dir = opendir(dPath)))
 	return;
 	char cwd[PATH_MAX];
+	int len = 0;
 	while ((cursor = readdir(dir)) != NULL) {
-		pid_t child;
 		//printf("%s\n",cursor->d_name);
+		
+		if (strcmp(cursor->d_name, ".") == 0 || strcmp(cursor->d_name, "..") == 0)
+			continue;
 		if (cursor->d_type == DT_DIR) {
+			tnode * current = malloc(sizeof(tnode));
 			char path[1024];
-			if (strcmp(cursor->d_name, ".") == 0 || strcmp(cursor->d_name, "..") == 0)
-				continue;
 			//printf("DIR %s\n",cursor->d_name);
-			child = fork();
-			if(child == 0){
-				strcpy(path,dPath);
-				if(!endsWithSlash(path))
-					strcat(path,"/");
-				strcat(path,cursor->d_name);
-				//printf("%d,", getpid());
-				fflush(stdout);
-				int subchildren = scan(path,oPath,sortColumn);
-				//free(path);
-				exit(subchildren);
-				break;
-			}
-			else{
-				int status;
-				if ( waitpid(child, &status, 0) == -1 ) {
-					perror("WAIT FAILED");
-					return 0;
-				}
-				children += WEXITSTATUS(status)+1;
-				//printf("%d\n",child);
-				//printf("%s %d\n",cursor->d_name, child);
-				continue;
-			}
+			strcpy(path,dPath);
+			//if(!endsWithSlash(path))
+			strcat(path,cursor->d_name);
+			strcat(path,"/");
+			current->dPath = path;
+			current->sortColumn=sortColumn;
+			current->next = localRoot->next;
+			localRoot->next = current;
+			//printf("%s\n",current->dPath); 
+			pthread_create(&(current->tid), NULL, scan, current);
 		}
 		else {
 			char *suffix = strrchr(cursor->d_name, '.');
-			child=fork();
-			if(child==0){
-				//TODO Check for valid FORMAT
-				char path[1024];
-				strcpy(path,dPath);
-				if(!endsWithSlash(path))
-					strcat(path,"/");
-				strcat(path,cursor->d_name);
-				printf("%d,",  getpid());
-				fflush(stdout);
-				if(checkIfValidCSV(path,sortColumn)!=1){
-					exit(-1);
-				}
-				movie_data* head = parse_csv(path);
-				head->next = mergeSort(head->next,sortColumn);
-				if(oPath){
-					strcpy(path,oPath);
-				}
-				else{
-					strcpy(path,dPath);
-				}
-				writeFile(cursor->d_name,head,sortColumn,path);
-				exit(1);
-			}
-			else{
-			children++;
-			//printf("%s %d\n",cursor->d_name, getpid() );
-			continue;
-			}
+			//TODO Check for valid FORMAT
+			tnode * current = malloc(sizeof(tnode)); 
+			char * path= malloc(sizeof(char)*1024);
+			strcpy(path,dPath);
+			//if(!endsWithSlash(path))
+			//	strcat(path,"/");
+			strcat(path,cursor->d_name);
+			current->dPath = path;
+			current->sortColumn=sortColumn;
+			current->next = localRoot->next;
+			localRoot->next = current;
+			//printf("%s\n",path); 
+			pthread_create(&(current->tid), NULL, sortFile, current);
 		}
+		len+=1;
 	}
+	
 	closedir(dir);
-	return children;
+	localRoot = localRoot->next;
+	while(localRoot != NULL){
+		pthread_join(localRoot->tid,NULL);
+		printf("%s\n",localRoot->dPath);
+		localRoot=localRoot->next;
+	}
+	return NULL;
 }
 
 int main(int argc, char *argv[]) {
+  
+  
   if(argc<3){
 	errorOut("Too few arguments exiting");
   }
@@ -269,15 +301,13 @@ int main(int argc, char *argv[]) {
   if(oFlag == 0){
 	   oValue = NULL;
   }
-  printf("Initial PID: %d\nPIDS of all child processes: ", getpid());
-  fflush(stdout);
-  int end = scan(dValue,oValue,cValue);
-  pid_t wpid;
-  int status = 0;
-  while ((wpid = wait(&status)) > 0)
-  {
-  }
-  printf("\nTotal number of processes: %d\n",end);
+  //printf("Initial PID: %d\nPIDS of all child processes: ", getpid());
+  //fflush(stdout);
+  tnode * results = malloc(sizeof(tnode));
+  results->dPath=dValue;
+  results->sortColumn=cValue;
+  scan(results);
+  //printf("\nTotal number of processes: %d\n",end);
   return 1;
 
 }
