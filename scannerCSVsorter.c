@@ -243,6 +243,7 @@ void * scan(void* input)
 	localRoot = localRoot->next;
 	while(localRoot != NULL){
 		pthread_join(localRoot->tid,NULL);
+		printf(getRow(localRoot->head));
 		printf("%s\n",localRoot->dPath);
 		localRoot=localRoot->next;
 	}
