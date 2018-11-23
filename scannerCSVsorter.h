@@ -221,6 +221,7 @@ char * getRow(movie_data * node){
   if(node == NULL){
     return ",,,,,,,,,,,,,,,,,,,,,,,,,,,";
   }
+  char buff[1024];
 	sprintf(buff,"t",node->color,node->director_name,node->num_critic_for_reviews,node->duration,node->director_facebook_likes,node->actor_3_facebook_likes,node->actor_2_name,node->actor_1_facebook_likes,node->gross,node->genres,node->actor_1_name,node->movie_title,node->num_voted_users,node->cast_total_facebook_likes,node->actor_3_name,node->facenumber_in_poster,node->plot_keywords,node->movie_imdb_link,node->num_user_for_reviews,node->language,node->country,node->content_rating,node->budget,node->title_year,node->actor_2_facebook_likes,node->imdb_score,node->aspect_ratio,node->movie_facebook_likes);
 	return buff;
 
@@ -479,6 +480,6 @@ f = fopen(filename, mode);
 
     free(row);
 
-    return (front->next);
+    return (front->next->next);
 
 }

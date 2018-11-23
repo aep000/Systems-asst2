@@ -2,7 +2,7 @@
 #include <string.h>
 
 
-int compare(movie_data* in1,  movie_data* in2, char* header){
+int compare(movie_data* in1,  movie_data* in2, const char* header){
 	char* val1 = getStringValues(*in1,header);
 	char* val2 = getStringValues(*in2,header);
 	if(val1!=NULL || val2!=NULL){
@@ -15,7 +15,7 @@ int compare(movie_data* in1,  movie_data* in2, char* header){
 	}
 }
 
-movie_data* mergeSort(movie_data* head, char* searchColumn){
+movie_data* mergeSort(movie_data* head, const char* searchColumn){
 
     if(head->next==NULL){
         return head;

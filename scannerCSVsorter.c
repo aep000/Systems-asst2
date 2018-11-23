@@ -132,25 +132,49 @@ int checkIfValidCSV(const char* path, const char* sortColumn){
 	return 1;
 }
 
-
+void printDuration(movie_data * h){
+	while(h!=NULL){
+		printf("%d\n",h->duration);
+		h=h->next;
+	}
+}
 movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
-	int len1 = strlen(h1->raw_row);
-	int len2 = strlen(h2->raw_row);
-	movie_data * out;
-	if(len2>len1){
-		out = h2;
+	movie_data * out = malloc(sizeof(movie_data));
+	movie_data * tail = out;
+	while(h1!=NULL && h2!=NULL){
+		int comp = compare(h1,h2,sortColumn);
+		if(comp>0){
+			tail->next = h1;
+			tail = tail->next;
+			h1=h1->next;
+		}
+		else{
+			tail->next = h2;
+			tail = tail->next;
+			h2=h2->next;
+		}
 	}
-	else{
-		out = h1;
+	if(h1!=NULL){
+		tail->next = h1;
 	}
+	if(h2!=NULL){
+		tail->next = h2;
+	}
+	return out->next;
 
 }
+
 
 movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 	//if(len == 2){
 	//	return merge()
 	//}
+//	if(head->tid ==0){
+//		head = head->next;
+//	}
 	if(len == 1){
+		printf("thread start on %s", head->dPath);
+		pthread_join(head->tid,NULL);
 		return(head->head);
 	}
 	int c = 0;
@@ -160,12 +184,11 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 		cursor=cursor->next;
 		c++;
 	}
-	tnode* temp = cursor->next;
-	cursor->next = NULL;
 	//TODO thread
-	movie_data * h1 = metaMerge(temp,len-pivot,sortColumn);
+	movie_data * h1 = metaMerge(head,len-pivot,sortColumn);
 	movie_data * h2 = metaMerge(cursor,pivot,sortColumn);
-	return merge(h1,h2,sortColumn);
+	movie_data * out = merge(h1,h2,sortColumn); 
+	return out;
 }
 
 
@@ -179,17 +202,16 @@ void * sortFile(void * threadNode){
 		return;
 	}
 	movie_data* head = parse_csv(dPath);
-	head->next = mergeSort(head->next,sortColumn);
+	head = mergeSort(head,sortColumn);
 	result->head = head;
 
 }
 
 void * scan(void* input)
 {
-	tnode * in = (tnode*) input;
-	const char * dPath=in->dPath;
-	const char * sortColumn = in->sortColumn;
-	movie_data * result =  in->head;
+	tnode * result = (tnode*) input;
+	const char * dPath=result->dPath;
+	const char * sortColumn = result->sortColumn;
 	tnode * localRoot = malloc(sizeof(tnode));
 	localRoot->head=NULL;
 	localRoot->next = NULL;
@@ -241,12 +263,11 @@ void * scan(void* input)
 	
 	closedir(dir);
 	localRoot = localRoot->next;
-	while(localRoot != NULL){
-		pthread_join(localRoot->tid,NULL);
-		printf(getRow(localRoot->head));
-		printf("%s\n",localRoot->dPath);
-		localRoot=localRoot->next;
-	}
+	movie_data* folderRes  = metaMerge(localRoot, len,sortColumn);
+	result->head = folderRes;
+	printf("%s\n",dPath);
+	printDuration(folderRes);
+		
 	return NULL;
 }
 
