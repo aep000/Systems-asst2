@@ -479,7 +479,6 @@ f = fopen(filename, mode);
 
 
     free(row);
-
     return (front->next->next);
 
 }

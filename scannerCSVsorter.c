@@ -139,28 +139,46 @@ void printDuration(movie_data * h){
 	}
 }
 movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
-	movie_data * out = malloc(sizeof(movie_data));
-	movie_data * tail = out;
+	if(h1!=NULL && h2!=NULL)
+		printf("merging %d and %d\n",h1->duration,h2->duration);
+	movie_data * out = NULL;
+	movie_data * tail;
 	while(h1!=NULL && h2!=NULL){
 		int comp = compare(h1,h2,sortColumn);
-		if(comp>0){
-			tail->next = h1;
-			tail = tail->next;
-			h1=h1->next;
+		movie_data * temp;
+		if(comp>=0){
+			temp = h1;
+			h1 = h1->next;
 		}
 		else{
-			tail->next = h2;
-			tail = tail->next;
+			temp = h2;
 			h2=h2->next;
 		}
+		if(out == NULL){
+			out = temp;
+			tail = temp;
+		}
+		else{
+			tail->next = temp;
+			tail = tail->next;
+			tail->next = NULL;
+		}
 	}
-	if(h1!=NULL){
-		tail->next = h1;
+	if(out != NULL){
+		if(h1!=NULL){
+			tail->next = h1;
+		}
+		if(h2!=NULL){
+			tail->next = h2;
+		}
 	}
-	if(h2!=NULL){
-		tail->next = h2;
+	else{
+		if(h1!=NULL)
+			return h1;
+		if(h2!=NULL)
+			return h2;
 	}
-	return out->next;
+	return out;
 
 }
 
@@ -173,8 +191,9 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 //		head = head->next;
 //	}
 	if(len == 1){
-		printf("thread start on %s", head->dPath);
 		pthread_join(head->tid,NULL);
+		printf("thread joined: %s\n", head->dPath);
+		
 		return(head->head);
 	}
 	int c = 0;
@@ -185,8 +204,8 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 		c++;
 	}
 	//TODO thread
-	movie_data * h1 = metaMerge(head,len-pivot,sortColumn);
-	movie_data * h2 = metaMerge(cursor,pivot,sortColumn);
+	movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
+	movie_data * h2 = metaMerge(head,pivot,sortColumn);
 	movie_data * out = merge(h1,h2,sortColumn); 
 	return out;
 }
@@ -263,10 +282,12 @@ void * scan(void* input)
 	
 	closedir(dir);
 	localRoot = localRoot->next;
+	printf("starting merge on local %s\n",dPath);
 	movie_data* folderRes  = metaMerge(localRoot, len,sortColumn);
 	result->head = folderRes;
-	printf("%s\n",dPath);
+	printf("Starting print %s\n",dPath);
 	printDuration(folderRes);
+	
 		
 	return NULL;
 }
