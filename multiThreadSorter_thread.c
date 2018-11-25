@@ -142,9 +142,21 @@ movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
 
 }
 
+struct metaMergeStruct{
+	tnode * head;
+	int len;
+	const char* sortColumn;
+	movie_data * output;
+	pthread_t tid;
+};
 
-movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
+void * metaMerge(void* input){
+	struct metaMergeStruct * inp = (struct metaMergeStruct * ) input;
+	tnode * head = inp->head;
+	int len = inp->len;
+	const char * sortColumn = inp->sortColumn;
 	if(head == NULL){
+		inp->output= NULL;
 		return NULL;
 	}
 	//if(len == 2){
@@ -155,8 +167,8 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 //	}
 	if(len == 1){
 		pthread_join(head->tid,NULL);
-
-		return(head->head);
+		inp->output= head->head;
+		return NULL;
 	}
 	int c = 0;
 	int pivot = len/2;
@@ -168,10 +180,24 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 	//TODO thread
 	char * p1 = head->dPath;
 	char * p2 = cursor->dPath;
-	movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
-	movie_data * h2 = metaMerge(head,pivot,sortColumn);
-	movie_data * out = merge(h1,h2,sortColumn);
-	return out;
+	struct metaMergeStruct * in1 =malloc(sizeof(struct metaMergeStruct));
+	in1->head=cursor;
+	in1->len = len-pivot;
+	in1->sortColumn = sortColumn;  
+	struct metaMergeStruct * in2 =malloc(sizeof(struct metaMergeStruct));
+	in2->head=head;
+	in2->len = pivot;
+	in2->sortColumn = sortColumn;
+	pthread_create(&(in1->tid), NULL, metaMerge, in1);
+	pthread_create(&(in2->tid), NULL, metaMerge, in2);
+	
+	//movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
+	//movie_data * h2 = metaMerge(head,pivot,sortColumn);
+	pthread_join(in1->tid,NULL);
+	pthread_join(in2->tid,NULL);
+	movie_data * out = merge(in1->head->head,in2->head->head,sortColumn);
+	inp->output = out;
+	return NULL;
 }
 
 
@@ -267,8 +293,13 @@ void * scan(void* input)
 
 	closedir(dir);
 	printf("\nTotal number of threads: %d\n",len);
-	movie_data* folderRes  = metaMerge(localRoot, len,sortColumn);
-	result->head = folderRes;
+	struct metaMergeStruct * res = malloc(sizeof(struct metaMergeStruct));
+	res->head=localRoot;
+	res->len=len;
+	res->sortColumn=sortColumn;
+	pthread_create(&(res->tid), NULL, metaMerge, res);
+	pthread_join(res->tid,NULL);
+	result->head = res->output;
 	//printDuration(folderRes);
 
 

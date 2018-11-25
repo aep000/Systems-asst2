@@ -253,7 +253,7 @@ movie_data* loadFile(const char* path){
   						return NULL;
   					}
   					row->data[mapping[cc]]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
-  					strcpy(row->data[mapping[cc]],columnBuffer);
+  					strcpy(row->data[mapping[cc]],trimwhitespace(columnBuffer));
   					if(one == ','){
   						cc++;
   					}
