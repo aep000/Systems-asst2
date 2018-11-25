@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <pthread.h>
-#include "scannerCSVsorter.h"
+#include "multiThreadSorter_thread.h"
 #include "mergesort.c"
 
 void errorOut(char* error){
@@ -40,7 +40,6 @@ int writeFile(char* name, movie_data* head, char* destinationPath){
 	movie_data* cur = head;
 	int i=0;
 	while(cur!=NULL){
-		printf(getRowString(cur));
 		fprintf(fp,"%s\n",getRowString(cur));
 		cur = cur->next;
 		i++;
@@ -94,11 +93,20 @@ void printDuration(movie_data * h){
 }
 movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
 	movie_data * out = NULL;
+	if(h1==NULL){
+		if(h2==NULL){
+			return NULL;
+		}
+		return h2;
+	}
+	if(h2==NULL){
+		return h1;
+	}
 	movie_data * tail;
 	while(h1!=NULL && h2!=NULL){
 		int comp = compare(h1,h2,sortColumn);
 		movie_data * temp;
-		if(comp>=0){
+		if(comp>0){
 			temp = h1;
 			h1 = h1->next;
 		}
@@ -136,6 +144,9 @@ movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
 
 
 movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
+	if(head == NULL){
+		return NULL;
+	}
 	//if(len == 2){
 	//	return merge()
 	//}
@@ -144,7 +155,6 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 //	}
 	if(len == 1){
 		pthread_join(head->tid,NULL);
-		printf("thread joined: %s\n", head->dPath);
 
 		return(head->head);
 	}
@@ -160,9 +170,7 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 	char * p2 = cursor->dPath;
 	movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
 	movie_data * h2 = metaMerge(head,pivot,sortColumn);
-	printf("merging: %s & %s\n", p1, p2);
 	movie_data * out = merge(h1,h2,sortColumn);
-	printf("finished: %s & %s\n", p1, p2);
 	return out;
 }
 
@@ -186,10 +194,13 @@ void * scan(void* input)
 {
 	tnode * result = (tnode*) input;
 	const char * dPath=result->dPath;
+	int idSrc = result->ID*10;
+	pid_t pid = getpid();
+	printf("Initial PID: %d\n",pid);
+	printf("TIDS of all spawned threads:");
 	const char * sortColumn = result->sortColumn;
-	tnode * localRoot = malloc(sizeof(tnode));
-	localRoot->head=NULL;
-	localRoot->next = NULL;
+	tnode * localRoot=NULL;
+	tnode * localTail;
 	DIR *dir;
 	struct dirent *cursor;
 	int children = 0;
@@ -212,8 +223,17 @@ void * scan(void* input)
 			strcat(path,cursor->d_name);
 			current->dPath = path;
 			current->sortColumn=sortColumn;
-			current->next = localRoot->next;
-			localRoot->next = current;
+			current->ID = idSrc+len;
+			printf("%d,",idSrc+len);
+			current->next = NULL;
+			if(localRoot==NULL){
+				localRoot = current;
+				localTail = localRoot;
+			}
+			else{
+				localTail->next = current;
+				localTail = localTail->next;
+			}
 			//printf("%s\n",current->dPath);
 			pthread_create(&(current->tid), NULL, scan, current);
 		}
@@ -228,8 +248,17 @@ void * scan(void* input)
 			strcat(path,cursor->d_name);
 			current->dPath = path;
 			current->sortColumn=sortColumn;
-			current->next = localRoot->next;
-			localRoot->next = current;
+			current->ID = idSrc+len;
+			printf("%d,",idSrc+len);
+			current->next = NULL;
+			if(localRoot==NULL){
+				localRoot = current;
+				localTail = localRoot;
+			}
+			else{
+				localTail->next = current;
+				localTail = localTail->next;
+			}
 			//printf("%s\n",path);
 			pthread_create(&(current->tid), NULL, sortFile, current);
 		}
@@ -237,11 +266,9 @@ void * scan(void* input)
 	}
 
 	closedir(dir);
-	localRoot = localRoot->next;
-	printf("starting merge on local %s\n",dPath);
+	printf("\nTotal number of threads: %d\n",len);
 	movie_data* folderRes  = metaMerge(localRoot, len,sortColumn);
 	result->head = folderRes;
-	printf("Starting print %s\n",dPath);
 	//printDuration(folderRes);
 
 
@@ -304,6 +331,7 @@ int main(int argc, char *argv[]) {
   //fflush(stdout);
   tnode * results = malloc(sizeof(tnode));
   results->dPath=dValue;
+  results->ID=0;
   results->sortColumn=cValue;
   //scan(results);
   pthread_create(&(results->tid), NULL, scan, results);

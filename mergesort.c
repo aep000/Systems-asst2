@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-
+#include <strings.h>
 //LEGACY
 /*int compare(movie_data* in1,  movie_data* in2, const char* header){
 	char* val1 = getStringValues(*in1,header);
@@ -16,32 +16,48 @@
 }*/
 
 int compare(movie_data * h1,movie_data * h2, const char * header ){
+  if(h1==NULL && h2!=NULL){
+	return 1;
+  }
+  if(h1!=NULL && h2==NULL){
+	return -1;
+  }
+  if(h1==NULL && h2==NULL){
+	return 0;
+  }
   int c;
   for(c=0;c<28;c++){
     if(strcmp(header,movie_headers[c])==0){
       break;
     }
   }
-  if(h1->data[c]==NULL && h2->data[c]==NULL)
+  if((h1->data[c]==NULL || h1->data[c][0]=='\0') && (h2->data[c]==NULL||h2->data[c][0]=='\0'))
     return 0;
-  if(h1->data[c]==NULL)
-      return 1;
-  if(h2->data[c]==NULL)
+  if(h1->data[c]==NULL || h1->data[c][0]=='\0')
       return -1;
+  if(h2->data[c]==NULL || h2->data[c][0]=='\0')
+      return 1;
   if(isNumeric(c)){
     int num1 = atoi(h1->data[c]);
     int  num2 = atoi(h2->data[c]);
-    return -(num1-num2);
+    if(num1>num2){
+	return -1;
+    }
+    if(num2>num1){
+	return 1;
+    }
+    if(num2==num1){
+	return 0;
+    }
    }
    else{
-	return strcmp(h1->data[c],h2->data[c]);
+	return  strcasecmp(h2->data[c],h1->data[c]);
    }
 }
 
 movie_data* mergeSort(movie_data* head, const char* searchColumn){
-
-    if(head->next==NULL){
-        return head;
+    if(head==NULL){
+        return NULL;
     }
     int c = 0;
     int length = 0;
@@ -49,6 +65,9 @@ movie_data* mergeSort(movie_data* head, const char* searchColumn){
     while(cursor!=NULL){
           length++;
           cursor=cursor->next;
+    }
+    if(length == 1){
+	return head;
     }
     c = 1;
     cursor = head;
@@ -72,18 +91,12 @@ movie_data* mergeSort(movie_data* head, const char* searchColumn){
 		            		l2=l2->next;
 		        	}
 		            }
-		            if(cmp>0){
+		            else{
 		                temp = l1;
 				if(l1!=NULL){
 		            		l1=l1->next;
 		        	}
 
-		            }
-		            if(cmp==0){
-		                temp = l1;
-				if(l1!=NULL){
-		            		l1=l1->next;
-		        	}
 		            }
 		            if(newHead==NULL){
 		                newHead = temp;

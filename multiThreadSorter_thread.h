@@ -23,7 +23,8 @@ typedef struct tnode{
 	movie_data* head;
 	struct tnode* next;
 	char * dPath;
-	char * sortColumn;
+	const char * sortColumn;
+	int ID;
 	pthread_t tid;
 }tnode;
 

@@ -1,6 +1,6 @@
-all: scannerCSVsorter.c
-	gcc scannerCSVsorter.c -o scannerCSVsorter -lm -g
+all: multiThreadSorter_thread.c
+	gcc multiThreadSorter_thread.c -o multiThreadSorter_thread -lpthread -lm -g
 first:
-	gcc scannerCSVsorter.c -o scannerCSVsorter -lm -g
+	gcc multiThreadSorter_thread.c -o multiThreadSorter_thread -lpthread -lm -g
 clean:
-	$(RM) scannerCSVsorter
+	$(RM) multiThreadSorter_thread
