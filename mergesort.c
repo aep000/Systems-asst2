@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-
-int compare(movie_data* in1,  movie_data* in2, const char* header){
+//LEGACY
+/*int compare(movie_data* in1,  movie_data* in2, const char* header){
 	char* val1 = getStringValues(*in1,header);
 	char* val2 = getStringValues(*in2,header);
 	if(val1!=NULL || val2!=NULL){
@@ -12,6 +12,29 @@ int compare(movie_data* in1,  movie_data* in2, const char* header){
 		double num1 = getNumericalValue(*in1,header);
 		double num2 = getNumericalValue(*in2,header);
 		return -(num1-num2);
+	}
+}*/
+
+int compare(movie_data * h1,movie_data * h2, char * header ){
+  int c;
+  for(c=0;c<28;c++){
+    if(strcmp(header,movie_headers[c])==0){
+      break;
+    }
+  }
+  if(h1->data[c]==NULL && h2->data[c]==NULL)
+    return 0;
+  if(h1->data[c]==NULL)
+      return 1;
+  if(h2->data[c]==NULL)
+      return -1;
+	if(isNumeric(c)){
+    num1 = atoi(h1->data[c]);
+    num2 = atoi(h2->data[c]);
+		return -(num1-num2);
+	}
+	else{
+		return strcmp(h1[c],h2[c])
 	}
 }
 

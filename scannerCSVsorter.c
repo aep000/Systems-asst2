@@ -43,7 +43,7 @@ int writeFile(char* name, movie_data* head,char* sortingHead, char* destinationP
 	movie_data* cur = head;
 	i=0;
 	while(cur!=NULL){
-		fprintf(fp,"%s\n",cur->raw_row);
+		fprintf(fp,"%s\n",getRowString(cur));
 		cur = cur->next;
 		i++;
 	}
@@ -82,65 +82,21 @@ int checkValidParamConfig( int cFlag, char* cValue, int oFlag, char* oValue, int
     return 1;
 
 }
-int checkIfValidCSV(const char* path, const char* sortColumn){
-	if(strstr(path,"-sorted-")!=NULL)
-	return -1;
+int checkIfValidCSV(const char* path){
 	if(strcmp(strchr(path,'.'),".csv")!=0)
-	return -2;
-	FILE *fp = fopen(path,"r");
-	char buffer[1024];
-	if(fp){
-		while (fgets(buffer, sizeof(buffer), fp) != NULL)
-		{
-			buffer[strlen(buffer) - 1] = '\0'; // eat the newline fgets() stores
-			strcat(buffer,",");
-			char* temp = strdup(buffer);
-			strcpy(temp,buffer);
-			char* last = temp;
-			int sortColumnInside=0;
-			while((temp = strstr(temp,","))!=NULL){
-
-				*temp='\0';
-				temp = temp+1;
-				char* trimmed = trimwhitespace(last);
-				int i = 0;
-				while(i<NUM_HEADERS){
-					if(strcmp(trimmed,movie_headers[i])==0){
-						i=99;
-					}
-					i++;
-				}
-				if(i!=100){
-					return -4;
-				}
-				if(strcmp(trimmed,sortColumn)==0){
-					sortColumnInside=1;
-				}
-				last=temp;
-
-			}
-			if(sortColumnInside!=1){
-				return -5;
-			}
-			break;
-			//printf("%s/n", buffer);
-		}
-	}
-	else{
-		return -3;
-	}
+		return -2;
 	return 1;
 }
 
 void printDuration(movie_data * h){
 	while(h!=NULL){
-		printf("%d\n",h->duration);
+		//printf("%d\n",h->duration);
 		h=h->next;
 	}
 }
 movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
 	if(h1!=NULL && h2!=NULL)
-		printf("merging %d and %d\n",h1->duration,h2->duration);
+		//printf("merging %d and %d\n",h1->duration,h2->duration);
 	movie_data * out = NULL;
 	movie_data * tail;
 	while(h1!=NULL && h2!=NULL){
@@ -193,7 +149,7 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 	if(len == 1){
 		pthread_join(head->tid,NULL);
 		printf("thread joined: %s\n", head->dPath);
-		
+
 		return(head->head);
 	}
 	int c = 0;
@@ -209,7 +165,7 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 	movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
 	movie_data * h2 = metaMerge(head,pivot,sortColumn);
 	printf("merging: %s & %s\n", p1, p2);
-	movie_data * out = merge(h1,h2,sortColumn); 
+	movie_data * out = merge(h1,h2,sortColumn);
 	printf("finished: %s & %s\n", p1, p2);
 	return out;
 }
@@ -224,7 +180,7 @@ void * sortFile(void * threadNode){
 		result->head = NULL;
 		return;
 	}
-	movie_data* head = parse_csv(dPath);
+	movie_data* head = processFile(dPath);
 	head = mergeSort(head,sortColumn);
 	result->head = head;
 
@@ -247,7 +203,7 @@ void * scan(void* input)
 	int len = 0;
 	while ((cursor = readdir(dir)) != NULL) {
 		//printf("%s\n",cursor->d_name);
-		
+
 		if (strcmp(cursor->d_name, ".") == 0 || strcmp(cursor->d_name, "..") == 0)
 			continue;
 		if (cursor->d_type == DT_DIR) {
@@ -262,13 +218,13 @@ void * scan(void* input)
 			current->sortColumn=sortColumn;
 			current->next = localRoot->next;
 			localRoot->next = current;
-			//printf("%s\n",current->dPath); 
+			//printf("%s\n",current->dPath);
 			pthread_create(&(current->tid), NULL, scan, current);
 		}
 		else {
 			char *suffix = strrchr(cursor->d_name, '.');
 			//TODO Check for valid FORMAT
-			tnode * current = malloc(sizeof(tnode)); 
+			tnode * current = malloc(sizeof(tnode));
 			char * path= malloc(sizeof(char)*1024);
 			strcpy(path,dPath);
 			//if(!endsWithSlash(path))
@@ -278,12 +234,12 @@ void * scan(void* input)
 			current->sortColumn=sortColumn;
 			current->next = localRoot->next;
 			localRoot->next = current;
-			//printf("%s\n",path); 
+			//printf("%s\n",path);
 			pthread_create(&(current->tid), NULL, sortFile, current);
 		}
 		len+=1;
 	}
-	
+
 	closedir(dir);
 	localRoot = localRoot->next;
 	printf("starting merge on local %s\n",dPath);
@@ -291,14 +247,14 @@ void * scan(void* input)
 	result->head = folderRes;
 	printf("Starting print %s\n",dPath);
 	//printDuration(folderRes);
-	
-		
+
+
 	return NULL;
 }
 
 int main(int argc, char *argv[]) {
-  
-  
+
+
   if(argc<3){
 	errorOut("Too few arguments exiting");
   }
