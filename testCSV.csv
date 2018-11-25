@@ -1,4 +1,4 @@
-director_name, duration
-al, 6 
-jim, 55
-bob, 77
+director_name, duration,color
+al, 6 ,
+jim, 55,
+bob, 77,

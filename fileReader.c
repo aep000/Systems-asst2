@@ -121,6 +121,7 @@ movieNode * processFile(char* path){
 					char* cleaned = trimwhitespace(columnBuffer);//Look into how I verify this works
 					int hashed = hash(cleaned,specialNum,50);
 					if(strcmp(movie_headers[map[hashed]],cleaned)!=0){
+						fprintf( stderr, "%s has invalid header: %s\n", path, cleaned);
 						return NULL; //ERROR OUT ON FILE IT IS INVALID
 					}
 					else{
@@ -149,6 +150,7 @@ movieNode * processFile(char* path){
 				}
 				else{
 					if(mapping[cc] ==-1){
+						fprintf( stderr, "%s has too many columns in the data", path);
 						return NULL;
 					}
 					row->data[mapping[cc]]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
@@ -174,14 +176,13 @@ movieNode * processFile(char* path){
 				}
 			}
 		}
-		free(columnBuffer);
 		return head;
 	}
 
 int main(int argc, char *argv[]){
 	movieNode * out = processFile(argv[1]);
 	while(out!=NULL){
-		printf("%s\n",out->data[1]);
+		printf("%s\n",out->data[9]);
 		out=out->next;
 	}
 	return 1;
