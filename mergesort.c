@@ -15,7 +15,7 @@
 	}
 }*/
 
-int compare(movie_data * h1,movie_data * h2, char * header ){
+int compare(movie_data * h1,movie_data * h2, const char * header ){
   int c;
   for(c=0;c<28;c++){
     if(strcmp(header,movie_headers[c])==0){
@@ -28,14 +28,14 @@ int compare(movie_data * h1,movie_data * h2, char * header ){
       return 1;
   if(h2->data[c]==NULL)
       return -1;
-	if(isNumeric(c)){
-    num1 = atoi(h1->data[c]);
-    num2 = atoi(h2->data[c]);
-		return -(num1-num2);
-	}
-	else{
-		return strcmp(h1[c],h2[c])
-	}
+  if(isNumeric(c)){
+    int num1 = atoi(h1->data[c]);
+    int  num2 = atoi(h2->data[c]);
+    return -(num1-num2);
+   }
+   else{
+	return strcmp(h1->data[c],h2->data[c]);
+   }
 }
 
 movie_data* mergeSort(movie_data* head, const char* searchColumn){

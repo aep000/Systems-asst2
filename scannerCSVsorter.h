@@ -14,7 +14,7 @@
 
 typedef struct node{
   char* data[28];
-  struct movie_data * next;
+  struct node * next;
 }movie_data;
 
 char* FILE_HEADER = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
@@ -68,7 +68,7 @@ char movie_headers[NUM_HEADERS][256] = {
 };
 
 char* trimwhitespace (char *str);
-
+movie_data * processFile(char* path);
 
 
 
@@ -78,42 +78,17 @@ char * getRowString(movie_data * node){
     return ",,,,,,,,,,,,,,,,,,,,,,,,,,,";
   }
   int c = 0;
-  char buffer[1024];
+  char * buffer= malloc(sizeof(char)*1024);;
   while (c<28){
     if(node->data[c]!=NULL){
       strcat(buffer, node->data[c]);
     }
-    strcat(buffer, ",")
+    strcat(buffer, ",");
     c++;
   }
   return buffer;
 }
 
-
-char* trimwhitespace (char *str) {
-
-    char *str_copy = strdup(str);
-    int len = strlen(str_copy);
-    char *end;
-    int i = 0;
-
-    //Trim leading space
-    while(str_copy[i] == ' ') {
-        str_copy++;
-    }
-
-    // Trim trailing space
-    int modified_length = strlen(str_copy)-1;
-
-    while(str_copy[modified_length] == ' '||str_copy[modified_length] == '\r') {
-        str_copy[modified_length] = '\0';
-        modified_length--;
-    }
-
-    return str_copy;
-
-    free(str_copy);
-}
 
 int isNumeric(int test){
   switch (test) {
@@ -168,6 +143,7 @@ int isNumeric(int test){
     default:
     return 0;
   }
+}
 
 unsigned long specialNum = 1178;
 unsigned long hash(unsigned char *str,unsigned long hash, int size){
@@ -217,7 +193,7 @@ int * genHashMap(){
       free(str_copy);
   }
 //IF TIME MAKE THIS SPIT OUT SIZE TOO
-movie_data * processFile(char* path){
+movie_data* loadFile(const char* path){
   	movie_data * head=NULL;
   	movie_data * tail;
   	int fd = open(path,O_RDONLY);
@@ -276,7 +252,7 @@ movie_data * processFile(char* path){
   						return NULL;
   					}
   					row->data[mapping[cc]]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
-  					strcpy(row->data[mapping[cc]],&columnBuffer);
+  					strcpy(row->data[mapping[cc]],columnBuffer);
   					if(one == ','){
   						cc++;
   					}
@@ -300,4 +276,3 @@ movie_data * processFile(char* path){
   		}
   		return head;
   	}
-}

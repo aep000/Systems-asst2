@@ -16,33 +16,31 @@ void errorOut(char* error){
 
 int endsWithSlash(const char *str)
 {
+    if (!str)
+        return 0;
+    size_t lenstr = strlen(str);
+    size_t lensuffix = strlen("/");
+    if (lensuffix >  lenstr)
+        return 0;
+    return strncmp(str + lenstr - lensuffix, "/", lensuffix) == 0;
     //return (strcmp(strchr(str,'/'),"/")==0);
-    return (str && *str && str[strlen(str) - 1] == '/') ? 0 : 1;
 }
-
-int writeFile(char* name, movie_data* head,char* sortingHead, char* destinationPath){
+//convert to System Calls
+int writeFile(char* name, movie_data* head, char* destinationPath){
 	char path[1024];
 	strcpy(path,destinationPath);
 	if(!endsWithSlash(path))
 		strcat(path,"/");
 	strcat(path,name);
-	int i = 0;
-    	while(path[i] != '\0')
-    	{
-        	i++;
-
-    	}
-    	path[i-4] = '\0';
-	strcat(path,"-sorted-");
-	strcat(path,sortingHead);
-	strcat(path,".csv");
 	FILE *fp = fopen(path, "w");
 	if(!fp){
 		errorOut("Can't Open File");
 	}
+	fprintf(fp,"%s\n",FILE_HEADER);
 	movie_data* cur = head;
-	i=0;
+	int i=0;
 	while(cur!=NULL){
+		printf(getRowString(cur));
 		fprintf(fp,"%s\n",getRowString(cur));
 		cur = cur->next;
 		i++;
@@ -95,8 +93,6 @@ void printDuration(movie_data * h){
 	}
 }
 movie_data * merge(movie_data * h1, movie_data * h2, const char * sortColumn){
-	if(h1!=NULL && h2!=NULL)
-		//printf("merging %d and %d\n",h1->duration,h2->duration);
 	movie_data * out = NULL;
 	movie_data * tail;
 	while(h1!=NULL && h2!=NULL){
@@ -176,11 +172,11 @@ void * sortFile(void * threadNode){
 	tnode * result = (tnode*) threadNode;
 	const char * dPath=result->dPath;
 	const char * sortColumn = result->sortColumn;
-	if(checkIfValidCSV(dPath,sortColumn)!=1){
+	if(checkIfValidCSV(dPath)!=1){
 		result->head = NULL;
 		return;
 	}
-	movie_data* head = processFile(dPath);
+	movie_data* head = loadFile(dPath);
 	head = mergeSort(head,sortColumn);
 	result->head = head;
 
@@ -211,9 +207,9 @@ void * scan(void* input)
 			char path[1024];
 			//printf("DIR %s\n",cursor->d_name);
 			strcpy(path,dPath);
-			//if(!endsWithSlash(path))
+			if(!endsWithSlash(path))
+				strcat(path,"/");
 			strcat(path,cursor->d_name);
-			strcat(path,"/");
 			current->dPath = path;
 			current->sortColumn=sortColumn;
 			current->next = localRoot->next;
@@ -227,8 +223,8 @@ void * scan(void* input)
 			tnode * current = malloc(sizeof(tnode));
 			char * path= malloc(sizeof(char)*1024);
 			strcpy(path,dPath);
-			//if(!endsWithSlash(path))
-			//	strcat(path,"/");
+			if(!endsWithSlash(path))
+				strcat(path,"/");
 			strcat(path,cursor->d_name);
 			current->dPath = path;
 			current->sortColumn=sortColumn;
@@ -302,14 +298,19 @@ int main(int argc, char *argv[]) {
 	   dValue = "./";
   }
   if(oFlag == 0){
-	   oValue = NULL;
+	   oValue = "./";
   }
   //printf("Initial PID: %d\nPIDS of all child processes: ", getpid());
   //fflush(stdout);
   tnode * results = malloc(sizeof(tnode));
   results->dPath=dValue;
   results->sortColumn=cValue;
-  scan(results);
+  //scan(results);
+  pthread_create(&(results->tid), NULL, scan, results);
+  pthread_join(results->tid,NULL);
+  char buff[100];
+  snprintf(buff, sizeof(buff), "AllFiles-sorted-%s.csv", cValue);
+  writeFile(buff,results->head,oValue);
   //printf("\nTotal number of processes: %d\n",end);
   return 1;
 
