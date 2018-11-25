@@ -3,13 +3,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <stdlib.h>
+#include <fcntl.h>
 typedef struct movieNode{
 	char* data[28];
 	struct movieNode * next;
 }movieNode;
-
-char movie_headers[NUM_HEADERS][256] = {
+char movie_headers[28][256] = {
 
         "color",
         "director_name",
@@ -57,7 +57,7 @@ unsigned long hash(unsigned char *str,unsigned long hash, int size)
 
 int * genHashMap(){
 	int * out = malloc(sizeof(int)*50);
-	c=0;
+	int c=0;
 	while(c<28){
 		int index = hash(movie_headers[c],specialNum,50);
 		out[index]= c;
@@ -91,28 +91,36 @@ char* trimwhitespace (char *str) {
     free(str_copy);
 }
 
+int compare(movieNode h1, movieNode h2){
+
+}
+
 movieNode * processFile(char* path){
-	movieNode * head;
+	movieNode * head=NULL;
 	movieNode * tail;
-	int ** headerPositions=malloc(sizeof(int*26));
-	int fd = open(path);
+	int fd = open(path,O_RDONLY);
 	char columnBuffer[1024];
+	memset(&columnBuffer[0], 0, sizeof(columnBuffer));
 	char one = 0;
 	int linecount = 0;
 	int bc=0;
 	int cc = 0;
 	int * map = genHashMap();
-	int mapping[28];
-	while(c = read(fd, &one, 1)){
+	int mapping[28]={};
+	memset(&mapping[0], -1, sizeof(mapping));
+	movieNode * row = NULL;
+	int inQuotes=0;
+	int c;
+	while(read(fd, &one, 1)==1){
+		//printf("%c",one);
 		if(linecount == 0){
-			if(one != ',' || one != '\n'){
+			if(one != ',' && one != '\n'){
 				columnBuffer[bc++]=one;
 			}
 			else{
 					char* cleaned = trimwhitespace(columnBuffer);//Look into how I verify this works
 					int hashed = hash(cleaned,specialNum,50);
-					free(cleaned);
-					if(strcmp(movie_headers[map[hashed]])!=0){
+					if(strcmp(movie_headers[map[hashed]],cleaned)!=0){
 						return NULL; //ERROR OUT ON FILE IT IS INVALID
 					}
 					else{
@@ -126,39 +134,55 @@ movieNode * processFile(char* path){
 						linecount++;
 						cc=0;
 					}
+					bc=0;
 				}
 			}
 			else{ //Linecout > 0
-				movieNode * row = malloc(sizeof(movieNode));
-				if(one != ',' || one != '\n'){
+				if(row == NULL){
+					row = malloc(sizeof(movieNode));
+				}
+				if((one != ',' && one != '\n') || inQuotes){
+					if(one == '"'){
+						inQuotes = inQuotes ^ 1;
+					}
 					columnBuffer[bc++]=one;
 				}
 				else{
-					if(columnBuffer!=)
-					row->data[cc]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
-					stcpy(row->data[cc],&columnBuffer);
+					if(mapping[cc] ==-1){
+						return NULL;
+					}
+					row->data[mapping[cc]]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
+					strcpy(row->data[mapping[cc]],&columnBuffer);
 					if(one == ','){
 						cc++;
 					}
 					else{
-						if(out==NULL){
-							out = row;
-							tail = out;
+						if(head==NULL){
+							head = row;
+							tail = head;
 						}
 						else{
-							tail->next = out;
+							tail->next = row;
 							tail = tail->next;
 						}
 						linecount++;
 						cc=0;
+						row = NULL;
 					}
+					bc=0;
+					memset(&columnBuffer[0], 0, sizeof(columnBuffer));
 				}
 			}
 		}
+		free(columnBuffer);
+		return head;
 	}
-}
 
 int main(int argc, char *argv[]){
-	out = processFile(*argv[0]);
+	movieNode * out = processFile(argv[1]);
+	while(out!=NULL){
+		printf("%s\n",out->data[1]);
+		out=out->next;
+	}
 	return 1;
 }

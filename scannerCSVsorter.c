@@ -204,9 +204,13 @@ movie_data * metaMerge(tnode* head, int len, const char * sortColumn){
 		c++;
 	}
 	//TODO thread
+	char * p1 = head->dPath;
+	char * p2 = cursor->dPath;
 	movie_data * h1 = metaMerge(cursor,len-pivot,sortColumn);
 	movie_data * h2 = metaMerge(head,pivot,sortColumn);
+	printf("merging: %s & %s\n", p1, p2);
 	movie_data * out = merge(h1,h2,sortColumn); 
+	printf("finished: %s & %s\n", p1, p2);
 	return out;
 }
 
@@ -286,7 +290,7 @@ void * scan(void* input)
 	movie_data* folderRes  = metaMerge(localRoot, len,sortColumn);
 	result->head = folderRes;
 	printf("Starting print %s\n",dPath);
-	printDuration(folderRes);
+	//printDuration(folderRes);
 	
 		
 	return NULL;
