@@ -222,8 +222,7 @@ void * scan(void* input)
 	const char * dPath=result->dPath;
 	int idSrc = result->ID*10;
 	pid_t pid = getpid();
-	printf("Initial PID: %d\n",pid);
-	printf("TIDS of all spawned threads:");
+	
 	const char * sortColumn = result->sortColumn;
 	tnode * localRoot=NULL;
 	tnode * localTail;
@@ -250,7 +249,6 @@ void * scan(void* input)
 			current->dPath = path;
 			current->sortColumn=sortColumn;
 			current->ID = idSrc+len;
-			printf("%d,",idSrc+len);
 			current->next = NULL;
 			if(localRoot==NULL){
 				localRoot = current;
@@ -275,7 +273,6 @@ void * scan(void* input)
 			current->dPath = path;
 			current->sortColumn=sortColumn;
 			current->ID = idSrc+len;
-			printf("%d,",idSrc+len);
 			current->next = NULL;
 			if(localRoot==NULL){
 				localRoot = current;
@@ -292,6 +289,13 @@ void * scan(void* input)
 	}
 
 	closedir(dir);
+	printf("\nInitial PID: %d\n",pid);
+	printf("TIDS of all spawned threads:");
+	tnode * toprint = localRoot;
+	while(toprint!=NULL){
+		printf("%d,",toprint->ID);
+		toprint=toprint->next;
+	}
 	printf("\nTotal number of threads: %d\n",len);
 	struct metaMergeStruct * res = malloc(sizeof(struct metaMergeStruct));
 	res->head=localRoot;

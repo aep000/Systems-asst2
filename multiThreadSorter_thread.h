@@ -220,7 +220,7 @@ movie_data* loadFile(const char* path){
   					char* cleaned = trimwhitespace(columnBuffer);//Look into how I verify this works
   					int hashed = hash(cleaned,specialNum,50);
   					if(strcmp(movie_headers[map[hashed]],cleaned)!=0){
-  						fprintf( stderr, "%s has invalid header: %s\n", path, cleaned);
+  					//	fprintf( stderr, "%s has invalid header: %s\n", path, cleaned);
   						return NULL; //ERROR OUT ON FILE IT IS INVALID
   					}
   					else{
@@ -253,7 +253,7 @@ movie_data* loadFile(const char* path){
   						return NULL;
   					}
   					row->data[mapping[cc]]=malloc(sizeof(char) * (strlen(columnBuffer) + 1));
-  					strcpy(row->data[mapping[cc]],trimwhitespace(columnBuffer));
+  					strcpy(row->data[mapping[cc]],columnBuffer);
   					if(one == ','){
   						cc++;
   					}
